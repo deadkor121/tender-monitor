@@ -29,11 +29,13 @@ class PostgresService {
       console.error('❌ Ошибка PostgreSQL:', err);
     });
     
-    // Автоматически инициализируем базу данных
-    this.initDatabase();
+    // Флаг инициализации
+    this.initialized = false;
   }
 
   async initDatabase() {
+    if (this.initialized) return; // Если уже инициализирована
+    
     const client = await this.pool.connect();
     try {
       console.log('[PostgresService] Инициализация схемы базы данных...');
@@ -85,7 +87,56 @@ class PostgresService {
         );
       `);
       
+      // Создание таблицы статусов тендеров
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS tender_statuses (
+          tender_id TEXT PRIMARY KEY REFERENCES tenders(id) ON DELETE CASCADE,
+          status TEXT NOT NULL CHECK (status IN ('new', 'in_progress', 'bid_submitted', 'won', 'lost', 'cancelled')),
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_tender_statuses_status ON tender_statuses(status);
+      `);
+      
+      // Создание таблицы приоритетов
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS priorities (
+          tender_id TEXT PRIMARY KEY REFERENCES tenders(id) ON DELETE CASCADE,
+          priority TEXT NOT NULL DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high')),
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_priorities_priority ON priorities(priority);
+      `);
+      
+      // Создание таблицы тегов
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS tags (
+          id SERIAL PRIMARY KEY,
+          tender_id TEXT NOT NULL REFERENCES tenders(id) ON DELETE CASCADE,
+          tag_name TEXT NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(tender_id, tag_name)
+        );
+        CREATE INDEX IF NOT EXISTS idx_tags_tender_id ON tags(tender_id);
+        CREATE INDEX IF NOT EXISTS idx_tags_tag_name ON tags(tag_name);
+      `);
+      
+      // Создание таблицы напоминаний
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS reminders (
+          id SERIAL PRIMARY KEY,
+          tender_id TEXT NOT NULL REFERENCES tenders(id) ON DELETE CASCADE,
+          remind_at TIMESTAMP NOT NULL,
+          message TEXT,
+          sent BOOLEAN DEFAULT FALSE,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_reminders_tender_id ON reminders(tender_id);
+        CREATE INDEX IF NOT EXISTS idx_reminders_remind_at ON reminders(remind_at);
+        CREATE INDEX IF NOT EXISTS idx_reminders_sent ON reminders(sent);
+      `);
+      
       console.log('✅ [PostgresService] База данных инициализирована');
+      this.initialized = true;
     } catch (error) {
       console.error('❌ [PostgresService] Ошибка инициализации БД:', error.message);
       throw error;
