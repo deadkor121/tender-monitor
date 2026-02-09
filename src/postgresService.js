@@ -28,6 +28,70 @@ class PostgresService {
     this.pool.on('error', (err) => {
       console.error('❌ Ошибка PostgreSQL:', err);
     });
+    
+    // Автоматически инициализируем базу данных
+    this.initDatabase();
+  }
+
+  async initDatabase() {
+    const client = await this.pool.connect();
+    try {
+      console.log('[PostgresService] Инициализация схемы базы данных...');
+      
+      // Создание таблицы тендеров
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS tenders (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          description TEXT,
+          category TEXT,
+          deadline TIMESTAMP,
+          link TEXT,
+          source TEXT NOT NULL CHECK (source IN ('anbud', 'doffin', 'ted', 'mercell')),
+          scraped_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          price NUMERIC(15, 2),
+          location TEXT,
+          contractor TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        
+        CREATE INDEX IF NOT EXISTS idx_tenders_source ON tenders(source);
+        CREATE INDEX IF NOT EXISTS idx_tenders_scraped_at ON tenders(scraped_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_tenders_deadline ON tenders(deadline);
+      `);
+      
+      // Создание таблицы избранного
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS favorites (
+          tender_id TEXT PRIMARY KEY REFERENCES tenders(id) ON DELETE CASCADE,
+          favorited_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+      
+      // Создание таблицы просмотренных
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS viewed (
+          tender_id TEXT PRIMARY KEY REFERENCES tenders(id) ON DELETE CASCADE,
+          viewed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+      
+      // Создание таблицы заметок
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS notes (
+          tender_id TEXT PRIMARY KEY REFERENCES tenders(id) ON DELETE CASCADE,
+          note_text TEXT NOT NULL,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+      
+      console.log('✅ [PostgresService] База данных инициализирована');
+    } catch (error) {
+      console.error('❌ [PostgresService] Ошибка инициализации БД:', error.message);
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   async saveTenders(tenders) {
