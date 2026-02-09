@@ -38,6 +38,11 @@ self.addEventListener('activate', event => {
 
 // Обработка запросов (Network First стратегия)
 self.addEventListener('fetch', event => {
+  // Игнорируем chrome-extension и не-GET запросы
+  if (!event.request.url.startsWith('http') || event.request.method !== 'GET') {
+    return;
+  }
+
   event.respondWith(
     fetch(event.request)
       .then(response => {
@@ -47,6 +52,9 @@ self.addEventListener('fetch', event => {
         caches.open(CACHE_NAME)
           .then(cache => {
             cache.put(event.request, responseToCache);
+          })
+          .catch(() => {
+            // Игнорируем ошибки кеширования
           });
         
         return response;
