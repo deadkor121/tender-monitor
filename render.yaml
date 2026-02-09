@@ -3,7 +3,7 @@ services:
   - type: web
     name: tender-monitor
     env: node
-    region: frankfurt # или oregon для США
+    region: oregon # Тот же регион что и база данных
     plan: free
     buildCommand: npm install --omit=dev
     startCommand: node src/server.js
