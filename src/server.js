@@ -28,13 +28,21 @@ if (!username || !password) {
   process.exit(1);
 }
 
-// Инициализация базы данных PostgreSQL
-const db = new PostgresService();
-const scheduler = new Scheduler(username, password, checkInterval, db); // Передаем БД в scheduler
-const userDataService = new UserDataService(db);
-const exportService = new ExportService();
-const notificationService = new NotificationService();
-const reminderService = new ReminderService(notificationService);
+// Объявление переменных
+let db, scheduler, userDataService, exportService, notificationService, reminderService;
+
+// Асинхронный запуск приложения
+(async () => {
+  try {
+    // Инициализация базы данных PostgreSQL
+    db = new PostgresService();
+    await db.initDatabase(); // Явная инициализация схемы БД
+    
+    scheduler = new Scheduler(username, password, checkInterval, db); // Передаем БД в scheduler
+    userDataService = new UserDataService(db);
+    exportService = new ExportService();
+    notificationService = new NotificationService();
+    reminderService = new ReminderService(notificationService);
 
 // Маппинг источников к файлам
 const SOURCE_FILES = {
@@ -424,16 +432,21 @@ app.get('/api/urgency/:deadline', (req, res) => {
   }
 });
 
-scheduler.start();
+  scheduler.start();
 
-server.listen(PORT, () => {
-  console.log(`\n=================================`);
-  console.log(`Сервер запущен на http://localhost:${PORT}`);
-  console.log(`=================================\n`);
-});
+  server.listen(PORT, () => {
+    console.log(`\n=================================`);
+    console.log(`Сервер запущен на http://localhost:${PORT}`);
+    console.log(`=================================\n`);
+  });
+
+  } catch (error) {
+    console.error('❌ Ошибка запуска сервера:', error);
+    process.exit(1);
+  }
+})();
 
 process.on('SIGINT', () => {
   console.log('\nОстановка сервера...');
-  scheduler.stop();
   process.exit(0);
 });
