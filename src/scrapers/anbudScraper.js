@@ -1,6 +1,27 @@
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-core');
 const fs = require('fs').promises;
 const path = require('path');
+
+// Функция для получения конфигурации браузера
+async function getBrowserConfig() {
+  if (process.env.NODE_ENV === 'production') {
+    // На Render используем chromium
+    const chromium = require('@sparticuz/chromium');
+    return {
+      args: chromium.args,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+    };
+  } else {
+    // Локально используем установленный Chrome
+    const puppeteerLocal = require('puppeteer');
+    return {
+      executablePath: puppeteerLocal.executablePath(),
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      headless: 'new'
+    };
+  }
+}
 
 class AnbudScraper {
   constructor(username, password) {
@@ -67,10 +88,8 @@ class AnbudScraper {
   }
 
   async init() {
-    this.browser = await puppeteer.launch({
-      headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
+    const config = await getBrowserConfig();
+    this.browser = await puppeteer.launch(config);
     this.page = await this.browser.newPage();
     await this.page.setViewport({ width: 1920, height: 1080 });
   }

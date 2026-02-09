@@ -5,9 +5,7 @@ services:
     env: node
     region: frankfurt # или oregon для США
     plan: free
-    buildCommand: |
-      npm install
-      npx puppeteer browsers install chrome
+    buildCommand: npm install --omit=dev
     startCommand: node src/server.js
     envVars:
       - key: NODE_ENV
