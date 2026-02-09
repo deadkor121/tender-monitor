@@ -42,5 +42,7 @@ build/
 # Test files
 test-results/
 coverage/
+test-*.js
+.env.test
 
 nul
