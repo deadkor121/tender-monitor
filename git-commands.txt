@@ -1,0 +1,28 @@
+# Быстрая загрузка на GitHub
+# Запустите эти команды по порядку
+
+# 1. Инициализация Git (если еще не сделано)
+git init
+
+# 2. Добавить все файлы
+git add .
+
+# 3. Первый коммит
+git commit -m "Initial commit: Tender Monitor System with Render deployment config"
+
+# 4. Переименовать ветку в main
+git branch -M main
+
+# 5. Связать с GitHub репозиторием
+# ВАЖНО: Сначала создайте репозиторий на GitHub.com
+# Перейдите на https://github.com/new и создайте репозиторий "tender-monitor"
+git remote add origin https://github.com/deadkor121/tender-monitor.git
+
+# 6. Загрузить код
+git push -u origin main
+
+# ===== ДАЛЬНЕЙШИЕ ОБНОВЛЕНИЯ =====
+# После первой загрузки используйте:
+# git add .
+# git commit -m "Описание изменений"
+# git push

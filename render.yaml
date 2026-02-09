@@ -1,0 +1,31 @@
+services:
+  # Web Service
+  - type: web
+    name: tender-monitor
+    env: node
+    region: frankfurt # или oregon для США
+    plan: free
+    buildCommand: npm install
+    startCommand: node src/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: HEADLESS
+        value: true
+      - key: CHECK_INTERVAL_MINUTES
+        value: 30
+      # DATABASE_URL нужно добавить вручную в Render Dashboard
+      # после создания PostgreSQL базы данных
+    healthCheckPath: /
+    # Авто-деплой при push в main ветку
+    autoDeploy: true
+
+# Примечание: PostgreSQL базу создайте отдельно через Render Dashboard:
+# 1. New + → PostgreSQL
+# 2. Name: tender-monitor-db
+# 3. Region: frankfurt (тот же что и web service)
+# 4. Plan: Free
+# 5. Скопируйте Internal Database URL
+# 6. Добавьте его в Environment Variables веб-сервиса как DATABASE_URL

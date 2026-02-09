@@ -1,0 +1,2192 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мониторинг тендеров - Строительство Норвегия</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="Мониторинг тендеров из Норвегии по строительству до 1 млн NOK">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Tender Monitor">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #e0e0e0;
+        }
+
+        .container { max-width: 1400px; margin: 0 auto; }
+
+        header {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+        }
+
+        h1 { color: #fff; font-size: 2.2em; margin-bottom: 8px; }
+        .subtitle { color: #aaa; font-size: 1em; }
+
+        /* --- Панель сайтов --- */
+        .sources-panel {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+        }
+
+        .sources-panel h3 { color: #fff; margin-bottom: 15px; font-size: 1.1em; }
+
+        .sources-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+        }
+
+        .source-card {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
+            padding: 18px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .source-card:hover { border-color: #667eea; }
+        .source-card.disabled { opacity: 0.5; }
+
+        .source-info h4 { color: #fff; margin-bottom: 4px; }
+        .source-info .source-url { color: #888; font-size: 0.85em; }
+        .source-info .source-status { font-size: 0.8em; margin-top: 4px; }
+        .source-info .source-status.ok { color: #4CAF50; }
+        .source-info .source-status.error { color: #f44336; }
+        .source-info .source-status.pending { color: #ff9800; }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 26px;
+            cursor: pointer;
+        }
+
+        .toggle-switch input { display: none; }
+
+        .toggle-slider {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: #555;
+            border-radius: 26px;
+            transition: 0.3s;
+        }
+
+        .toggle-slider:before {
+            content: '';
+            position: absolute;
+            width: 20px; height: 20px;
+            left: 3px; bottom: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+
+        .toggle-switch input:checked + .toggle-slider { background: #4CAF50; }
+        .toggle-switch input:checked + .toggle-slider:before { transform: translateX(24px); }
+
+        /* --- Статистика --- */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-3px);
+            border-color: #667eea;
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .stat-value { font-size: 2.2em; font-weight: bold; color: #667eea; margin-bottom: 5px; }
+        .stat-value.urgent { color: #f44336; }
+        .stat-value.warning { color: #ff9800; }
+        .stat-value.success { color: #4CAF50; }
+        .stat-label { color: #888; font-size: 0.8em; text-transform: uppercase; letter-spacing: 1px; }
+        
+        /* Быстрые фильтры */
+        .quick-filters {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 15px 20px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .quick-filters h3 {
+            color: #fff;
+            font-size: 0.95em;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .quick-filter-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .quick-filter-btn {
+            background: rgba(102, 126, 234, 0.15);
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            color: #a5b4fc;
+            padding: 10px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .quick-filter-btn:hover {
+            background: rgba(102, 126, 234, 0.25);
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+        
+        .quick-filter-btn.active {
+            background: #667eea;
+            border-color: #667eea;
+            color: #fff;
+        }
+        
+        .quick-filter-btn .count {
+            background: rgba(255,255,255,0.2);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+        
+        .quick-filter-btn.active .count {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        /* Индикатор обновления */
+        .update-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+            padding: 8px 12px;
+            background: rgba(76, 175, 80, 0.1);
+            border: 1px solid rgba(76, 175, 80, 0.3);
+            border-radius: 8px;
+            font-size: 0.85em;
+        }
+        
+        .update-indicator.loading {
+            background: rgba(255, 152, 0, 0.1);
+            border-color: rgba(255, 152, 0, 0.3);
+        }
+        
+        .update-pulse {
+            width: 8px;
+            height: 8px;
+            background: #4CAF50;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        .update-pulse.loading {
+            background: #ff9800;
+        }
+
+        /* --- Контролы --- */
+        .controls {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 15px 20px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 22px;
+            border-radius: 8px;
+            font-size: 0.95em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled { background: #444; cursor: not-allowed; transform: none; box-shadow: none; }
+        button.active { background: #4CAF50; }
+        button.btn-orange { background: #ff9800; }
+        button.btn-orange:hover { background: #e68a00; }
+
+        select, input[type="text"] {
+            padding: 10px 15px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            font-size: 0.95em;
+            outline: none;
+            background: rgba(255,255,255,0.08);
+            color: #fff;
+            transition: border-color 0.3s;
+        }
+
+        select:focus, input[type="text"]:focus { border-color: #667eea; }
+        select option { background: #1a1a2e; color: #fff; }
+
+        /* --- Тендеры --- */
+        .tenders-container {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 25px;
+            border-radius: 15px;
+        }
+
+        .tender-item {
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 22px;
+            margin-bottom: 15px;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            background: rgba(255,255,255,0.03);
+        }
+
+        .tender-item:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        }
+
+        .tender-item.new { 
+            border: 2px solid #4CAF50;
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.15) 0%, rgba(76, 175, 80, 0.05) 100%);
+            box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
+            animation: newTenderPulse 2s ease-in-out infinite;
+            position: relative;
+        }
+
+        @keyframes newTenderPulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(76, 175, 80, 0.3); }
+            50% { box-shadow: 0 0 30px rgba(76, 175, 80, 0.5), 0 0 40px rgba(76, 175, 80, 0.2); }
+        }
+
+        .tender-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 12px;
+            gap: 10px;
+        }
+
+        .tender-title { font-size: 1.2em; color: #fff; font-weight: 600; flex: 1; }
+
+        .tender-badges { display: flex; gap: 8px; flex-shrink: 0; }
+
+        .tender-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            font-weight: 600;
+        }
+
+        /* NEW badge с анимацией */
+        .tender-badge.new-badge {
+            background: linear-gradient(135deg, #4CAF50, #45a049) !important;
+            color: white !important;
+            font-weight: 700 !important;
+            box-shadow: 0 2px 10px rgba(76, 175, 80, 0.4);
+            animation: badgePulse 1.5s ease-in-out infinite;
+            padding: 5px 14px;
+        }
+
+        @keyframes badgePulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+        .tender-badge.source-badge { background: #667eea; color: white; }
+        .tender-badge.source-badge.doffin { background: #ff9800; }
+        .tender-badge.source-badge.ted { background: #2196F3; }
+        .tender-badge.source-badge.mercell { background: #9C27B0; }
+        .tender-badge.beginner { background: #00bcd4; color: white; }
+
+        .tender-category {
+            display: inline-block;
+            background: rgba(102, 126, 234, 0.2);
+            color: #97a8f0;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            margin-bottom: 10px;
+        }
+
+        .tender-description { color: #aaa; line-height: 1.6; margin-bottom: 12px; font-size: 0.95em; }
+
+        .tender-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255,255,255,0.08);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .tender-date { 
+            color: #aaa; 
+            font-size: 0.9em; 
+            line-height: 1.6;
+        }
+
+        .tender-date strong {
+            color: #ccc;
+        }
+
+        .tender-link {
+            background: #667eea;
+            color: white;
+            padding: 8px 18px;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .tender-link:hover { background: #5568d3; }
+
+        .loading { text-align: center; padding: 40px; color: #888; }
+
+        .spinner {
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 35px; height: 35px;
+            animation: spin 1s linear infinite;
+            margin: 15px auto;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .empty-state { text-align: center; padding: 50px 20px; }
+        .empty-state-icon { font-size: 3.5em; margin-bottom: 15px; }
+        .empty-state-text { color: #888; font-size: 1.1em; }
+
+        .results-count { color: #888; font-size: 0.9em; padding: 10px 0; }
+        
+        /* === Новые стили === */
+        
+        /* Избранное и статусы */
+        .tender-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        .btn-icon {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #aaa;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.85em;
+        }
+        
+        .btn-icon:hover { background: rgba(255,255,255,0.15); color: #fff; }
+        .btn-icon.active { background: #667eea; color: white; border-color: #667eea; }
+        .btn-icon.favorite.active { background: #f44336; }
+        
+        /* Сортировка и пагинация */
+        .sort-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .pagination {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        .pagination button {
+            padding: 8px 12px;
+            min-width: 40px;
+        }
+        
+        .pagination button.active {
+            background: #667eea;
+        }
+        
+        /* Модальное окно */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal.show { display: flex; }
+        
+        .modal-content {
+            background: #1a1a2e;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 800px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-close {
+            background: none;
+            color: #aaa;
+            font-size: 1.5em;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+        }
+        
+        /* Темы */
+        body.light-theme {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #333;
+        }
+        
+        body.light-theme .tender-item,
+        body.light-theme .stat-card,
+        body.light-theme .sources-panel {
+            background: rgba(255,255,255,0.9);
+            color: #333;
+        }
+        
+        body.light-theme .tender-title,
+        body.light-theme h1, body.light-theme h3 {
+            color: #1a1a2e;
+        }
+        
+        /* Переключатель темы */
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            z-index: 100;
+        }
+        
+        /* Адаптивный дизайн */
+        @media (max-width: 768px) {
+            .controls { flex-direction: column; align-items: stretch; }
+            .controls button, .controls select, .controls input { width: 100%; }
+            .sources-grid { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .tender-header { flex-direction: column; align-items: start; }
+        }
+        
+        /* Графики */
+        .chart-container {
+            background: rgba(255,255,255,0.05);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .chart-bar {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .chart-label {
+            width: 150px;
+            font-size: 0.9em;
+            color: #aaa;
+        }
+        
+        .chart-bar-fill {
+            height: 24px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+        
+        .chart-value {
+            margin-left: 10px;
+            color: #fff;
+            font-weight: bold;
+        }
+        
+        /* === Новые стили для дополнительных функций === */
+        
+        /* Теги */
+        .tender-tags {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin: 8px 0;
+        }
+        
+        .tag {
+            background: rgba(102, 126, 234, 0.2);
+            color: #97a8f0;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.75em;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .tag-remove {
+            cursor: pointer;
+            font-weight: bold;
+            opacity: 0.7;
+        }
+        
+        .tag-remove:hover { opacity: 1; }
+        
+        .tag-input-container {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .tag-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: #1a1a2e;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 10;
+            min-width: 200px;
+            display: none;
+        }
+        
+        .tag-suggestions.show { display: block; }
+        
+        .tag-suggestion {
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .tag-suggestion:hover {
+            background: rgba(102, 126, 234, 0.3);
+        }
+        
+        /* Приоритеты */
+        .priority-badge {
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.75em;
+            font-weight: 600;
+            display: inline-block;
+        }
+        
+        .priority-badge.high {
+            background: #f44336;
+            color: white;
+        }
+        
+        .priority-badge.medium {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .priority-badge.low {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .tender-item.priority-high {
+            border-left: 4px solid #f44336;
+        }
+        
+        .tender-item.priority-medium {
+            border-left: 4px solid #ff9800;
+        }
+        
+        .tender-item.priority-low {
+            border-left: 4px solid #4CAF50;
+        }
+        
+        /* Срочность дедлайна */
+        .deadline-badge {
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.75em;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .deadline-badge.urgent {
+            background: #f44336;
+            color: white;
+            animation: pulse 2s infinite;
+        }
+        
+        .deadline-badge.warning {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .deadline-badge.normal {
+            background: rgba(255,255,255,0.1);
+            color: #aaa;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        /* Расширенные фильтры */
+        .advanced-filters {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .advanced-filters.show { display: block; }
+        
+        .filter-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .filter-group label {
+            display: block;
+            color: #aaa;
+            font-size: 0.85em;
+            margin-bottom: 5px;
+        }
+        
+        .filter-group input[type="number"],
+        .filter-group input[type="date"] {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.08);
+            color: #fff;
+        }
+        
+        .filter-presets {
+            display: flex;
+            gap: 8px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .preset-btn {
+            background: rgba(102, 126, 234, 0.2);
+            border: 1px solid rgba(102, 126, 234, 0.4);
+            color: #97a8f0;
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: all 0.3s;
+        }
+        
+        .preset-btn:hover {
+            background: rgba(102, 126, 234, 0.3);
+            border-color: #667eea;
+        }
+        
+        /* Модальные окна для тегов и напоминаний */
+        .modal-input {
+            width: 100%;
+            padding: 10px 15px;
+            margin: 10px 0;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.08);
+            color: #fff;
+            font-size: 1em;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+        
+        .btn-secondary {
+            background: #555;
+        }
+        
+        .btn-secondary:hover {
+            background: #666;
+        }
+        
+        .reminder-options {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 15px 0;
+        }
+        
+        .reminder-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .reminder-checkbox:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .reminder-checkbox input[type="checkbox"] {
+            cursor: pointer;
+        }
+        
+        /* PWA Install Button */
+        .install-pwa {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #667eea;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            cursor: pointer;
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        .install-pwa.show { display: block; }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateY(100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .install-pwa:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+        
+        /* Счетчик тегов */
+        .filter-tag-list {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        
+        .filter-tag {
+            background: rgba(102, 126, 234, 0.3);
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .filter-tag:hover {
+            background: rgba(102, 126, 234, 0.5);
+        }
+        
+        .filter-tag.active {
+            background: #667eea;
+        }
+    </style>
+    <script src="/socket.io/socket.io.js"></script>
+
+</head>
+<body>
+    <!-- Переключатель темы -->
+    <div class="theme-toggle" onclick="toggleTheme()" title="Переключить тему">
+        🌓
+    </div>
+
+    <div class="container">
+        <header>
+            <h1>Мониторинг строительных тендеров</h1>
+            <p class="subtitle">Норвегия | Строительство до 1 млн NOK | Подходящие для новичков</p>
+            <div class="update-indicator" id="updateIndicator">
+                <div class="update-pulse"></div>
+                <span id="lastUpdateText">Загрузка...</span>
+            </div>
+        </header>
+
+        <!-- Панель выбора сайтов -->
+        <div class="sources-panel">
+            <h3>Сайты мониторинга</h3>
+            <div class="sources-grid" id="sourcesGrid">
+                <!-- заполняется динамически -->
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="totalTenders">0</div>
+                <div class="stat-label">Всего тендеров</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value success" id="newTenders">0</div>
+                <div class="stat-label">Новых (48ч)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value urgent" id="urgentTenders">0</div>
+                <div class="stat-label">Срочных (&lt;3д)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value warning" id="warningTenders">0</div>
+                <div class="stat-label">Предупр. (&lt;7д)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="favoriteTenders">0</div>
+                <div class="stat-label">⭐ Избранных</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalRuns">0</div>
+                <div class="stat-label">Проверок</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="lastCheck">--</div>
+                <div class="stat-label">Посл. провер.</div>
+            </div>
+        </div>
+        
+        <!-- Быстрые фильтры -->
+        <div class="quick-filters">
+            <h3>⚡ Быстрые фильтры</h3>
+            <div class="quick-filter-buttons">
+                <button class="quick-filter-btn" onclick="quickFilter('urgent')" id="quickUrgent">
+                    🔴 Срочные
+                    <span class="count" id="countUrgent">0</span>
+                </button>
+                <button class="quick-filter-btn" onclick="quickFilter('new')" id="quickNew">
+                    ⚡ Новые
+                    <span class="count" id="countNew">0</span>
+                </button>
+                <button class="quick-filter-btn" onclick="quickFilter('favorites')" id="quickFavorites">
+                    ⭐ Избранное
+                    <span class="count" id="countFavorites">0</span>
+                </button>
+                <button class="quick-filter-btn" onclick="quickFilter('warning')" id="quickWarning">
+                    🟠 Скоро
+                    <span class="count" id="countWarning">0</span>
+                </button>
+                <button class="quick-filter-btn" onclick="quickFilter('all')" id="quickAll">
+                    📋 Все
+                    <span class="count" id="countAll">0</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button onclick="loadTenders()" id="refreshBtn">Обновить</button>
+            <button onclick="scrapeNow()" id="scrapeBtn" class="btn-orange">Проверить сейчас</button>
+            <button onclick="showAnalytics()">📊 Аналитика</button>
+            <button onclick="showFavorites()">⭐ Избранное</button>
+            <div class="sort-controls">
+                <select id="sortBy" onchange="applyFilters()">
+                    <option value="date">По дате</option>
+                    <option value="deadline">По дедлайну</option>
+                    <option value="title">По названию</option>
+                </select>
+            </div>
+            <select id="sourceFilter" onchange="applyFilters()">
+                <option value="all">Все сайты</option>
+                <option value="anbud">Anbud Direkte</option>
+                <option value="doffin">Doffin.no</option>
+                <option value="ted">TED Europa</option>
+                <option value="mercell">Mercell</option>
+            </select>
+            <select id="timeFilter" onchange="applyFilters()">
+                <option value="all">Все время</option>
+                <option value="24h">За 24 часа</option>
+                <option value="7d">За 7 дней</option>
+            </select>
+            <input type="text" id="searchInput" placeholder="Поиск по названию..." oninput="applyFilters()">
+            <select id="exportFormat" onchange="exportData(this.value); this.value='';">
+                <option value="">Экспорт...</option>
+                <option value="excel">Excel (.xlsx)</option>
+                <option value="csv">CSV</option>
+                <option value="json">JSON</option>
+            </select>
+            <button onclick="toggleAdvancedFilters()">🔍 Расширенный поиск</button>
+        </div>
+
+        <!-- Расширенные фильтры -->
+        <div class="advanced-filters" id="advancedFilters">
+            <h3 style="color: #fff; margin-bottom: 15px;">Расширенные фильтры</h3>
+            
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label>Цена от (NOK):</label>
+                    <input type="number" id="priceMin" placeholder="0" onchange="applyFilters()">
+                </div>
+                <div class="filter-group">
+                    <label>Цена до (NOK):</label>
+                    <input type="number" id="priceMax" placeholder="1000000" onchange="applyFilters()">
+                </div>
+                <div class="filter-group">
+                    <label>Дедлайн от:</label>
+                    <input type="date" id="deadlineFrom" onchange="applyFilters()">
+                </div>
+                <div class="filter-group">
+                    <label>Дедлайн до:</label>
+                    <input type="date" id="deadlineTo" onchange="applyFilters()">
+                </div>
+            </div>
+            
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label>Срочность:</label>
+                    <select id="urgencyFilter" onchange="applyFilters()">
+                        <option value="all">Все</option>
+                        <option value="urgent">Срочные (≤3 дней)</option>
+                        <option value="warning">Скоро (≤7 дней)</option>
+                        <option value="normal">Обычные (>7 дней)</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Приоритет:</label>
+                    <select id="priorityFilter" onchange="applyFilters()">
+                        <option value="all">Все</option>
+                        <option value="high">Высокий</option>
+                        <option value="medium">Средний</option>
+                        <option value="low">Низкий</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Теги:</label>
+                    <div class="filter-tag-list" id="filterTagList">
+                        <span style="color: #aaa; font-size: 0.85em;">Загрузка тегов...</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="filter-presets">
+                <span style="color: #aaa; margin-right: 10px;">Пресеты:</span>
+                <button class="preset-btn" onclick="loadPreset('urgent')">⚡ Срочные</button>
+                <button class="preset-btn" onclick="loadPreset('highPriority')">🔴 Высокий приоритет</button>
+                <button class="preset-btn" onclick="loadPreset('recent')">🆕 Новые за 24ч</button>
+                <button class="preset-btn" onclick="saveCurrentPreset()">💾 Сохранить текущий</button>
+                <button class="preset-btn" onclick="resetFilters()">🔄 Сбросить</button>
+            </div>
+        </div>
+
+        <div class="tenders-container">
+            <div class="results-count" id="resultsCount"></div>
+            <div id="tendersContent">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Загрузка данных...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно аналитики -->
+    <div id="analyticsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📊 Аналитика</h2>
+                <button class="modal-close" onclick="closeModal('analyticsModal')">×</button>
+            </div>
+            <div id="analyticsContent">
+                <div class="loading"><div class="spinner"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно избранного -->
+    <div id="favoritesModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>⭐ Избранное</h2>
+                <button class="modal-close" onclick="closeModal('favoritesModal')">×</button>
+            </div>
+            <div id="favoritesContent">
+                <div class="loading"><div class="spinner"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allTenders = [];
+        let sources = [];
+        let favorites = {};
+        let currentPage = 1;
+        let itemsPerPage = 20;
+        let socket;
+        let activeQuickFilter = null; // Активный быстрый фильтр
+        let lastUpdateTime = null; // Время последнего обновления
+
+        // WebSocket подключение
+        function initWebSocket() {
+            socket = io();
+            socket.on('connect', () => console.log('[WebSocket] Подключено'));
+            socket.on('newTenders', (data) => {
+                console.log('[WebSocket] Новые тендеры!', data);
+                showNotification(`Найдено ${data.count} новых тендеров!`);
+                loadTenders();
+            });
+        }
+
+        // Уведомление
+        function showNotification(message) {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('Мониторинг тендеров', { body: message, icon: '/favicon.ico' });
+            }
+            // Звуковое уведомление (опционально)
+            playNotificationSound();
+        }
+
+        function playNotificationSound() {
+            const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZTRQSX6fi8LJWJBU='); audio.play().catch(() => {});
+        }
+
+        // Загрузка избранного
+        async function loadFavorites() {
+            try {
+                const response = await fetch('/api/favorites');
+                const data = await response.json();
+                if (data.success) favorites = data.favorites;
+            } catch (error) {
+                console.error('Ошибка загрузки избранного:', error);
+            }
+        }
+
+        // Переключение темы
+        function toggleTheme() {
+            document.body.classList.toggle('light-theme');
+            localStorage.setItem('theme', document.body.classList.contains('light-theme') ? 'light' : 'dark');
+        }
+
+        // Загрузка темы из localStorage
+        function loadTheme() {
+            if (localStorage.getItem('theme') === 'light') {
+                document.body.classList.add('light-theme');
+            }
+        }
+
+        // Модальные окна
+        function showModal(id) {
+            document.getElementById(id).classList.add('show');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('show');
+        }
+
+        // Аналитика
+        async function showAnalytics() {
+            showModal('analyticsModal');
+            try {
+                const response = await fetch('/api/analytics');
+                const data = await response.json();
+                if (data.success) {
+                    displayAnalytics(data.analytics);
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки аналитики:', error);
+            }
+        }
+
+        function displayAnalytics(analytics) {
+            const container = document.getElementById('analyticsContent');
+            container.innerHTML = `
+                <div class="chart-container">
+                    <h3>Всего тендеров: ${analytics.total}</h3>
+                </div>
+                
+                <div class="chart-container">
+                    <h3>По источникам</h3>
+                    ${analytics.bySource.map(item => `
+                        <div class="chart-bar">
+                            <div class="chart-label">${item.source}</div>
+                            <div class="chart-bar-fill" style="width: ${(item.count / analytics.total) * 100}%"></div>
+                            <div class="chart-value">${item.count}</div>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <div class="chart-container">
+                    <h3>Топ 10 категорий</h3>
+                    ${analytics.byCategory.map(item => `
+                        <div class="chart-bar">
+                            <div class="chart-label">${item.category}</div>
+                            <div class="chart-bar-fill" style="width: ${(item.count / analytics.total) * 100}%"></div>
+                            <div class="chart-value">${item.count}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // Избранное
+        async function showFavorites() {
+            showModal('favoritesModal');
+            await loadFavorites();
+            const container = document.getElementById('favoritesContent');
+            const favList = Object.values(favorites);
+            
+            if (favList.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⭐</div><p class="empty-state-text">Нет избранных тендеров</p></div>';
+                return;
+            }
+            
+            container.innerHTML = favList.map(tender => createTenderHTML(tender, true)).join('');
+        }
+
+        async function toggleFavorite(tenderId, tender) {
+            try {
+                if (favorites[tenderId]) {
+                    await fetch(`/api/favorites/${tenderId}`, { method: 'DELETE' });
+                    delete favorites[tenderId];
+                } else {
+                    await fetch(`/api/favorites/${tenderId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ tender })
+                    });
+                    favorites[tenderId] = tender;
+                }
+                
+                applyFilters(); // Перерисовать список
+                
+                // Обновить модальное окно избранного, если оно открыто
+                const modal = document.getElementById('favoritesModal');
+                if (modal && modal.classList.contains('show')) {
+                    const container = document.getElementById('favoritesContent');
+                    const favList = Object.values(favorites);
+                    
+                    if (favList.length === 0) {
+                        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⭐</div><p class="empty-state-text">Нет избранных тендеров</p></div>';
+                    } else {
+                        container.innerHTML = favList.map(tender => createTenderHTML(tender, true)).join('');
+                    }
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+            }
+        }
+
+        async function setStatus(tenderId, status) {
+            try {
+                await fetch(`/api/status/${tenderId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status })
+                });
+            } catch (error) {
+                console.error('Ошибка:', error);
+            }
+        }
+
+        // Экспорт
+        async function exportData(format) {
+            if (!format) return;
+            const source = document.getElementById('sourceFilter').value;
+            window.open(`/api/export/${format}?source=${source}`, '_blank');
+        }
+
+        // Загрузка сайтов
+        async function loadSources() {
+            try {
+                const response = await fetch('/api/sources');
+                const data = await response.json();
+                if (data.success) {
+                    sources = data.sources;
+                    renderSources();
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки сайтов:', error);
+            }
+        }
+
+        function renderSources() {
+            const grid = document.getElementById('sourcesGrid');
+            grid.innerHTML = sources.map(s => `
+                <div class="source-card ${s.enabled ? '' : 'disabled'}">
+                    <div class="source-info">
+                        <h4>${escapeHtml(s.name)}</h4>
+                        <div class="source-url">${escapeHtml(s.url)} ${s.requiresLogin ? '(login)' : '(open)'}</div>
+                        <div class="source-desc" style="color:#888;font-size:0.8em;margin-top:2px;">${escapeHtml(s.description || '')}</div>
+                        <div class="source-status pending" id="status-${s.id}">${s.enabled ? 'Ожидание...' : 'Отключен'}</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" ${s.enabled ? 'checked' : ''} onchange="toggleSource('${s.id}', this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            `).join('');
+        }
+
+        async function toggleSource(sourceId, enabled) {
+            try {
+                const body = {};
+                body[sourceId] = enabled;
+                await fetch('/api/sources', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                await loadSources();
+            } catch (error) {
+                console.error('Ошибка:', error);
+            }
+        }
+
+        // Загрузка тендеров
+        async function loadTenders() {
+            try {
+                const btn = document.getElementById('refreshBtn');
+                btn.disabled = true;
+                btn.textContent = 'Загрузка...';
+
+                const response = await fetch('/api/tenders?source=all');
+                const data = await response.json();
+
+                if (data.success) {
+                    allTenders = data.tenders;
+                    lastUpdateTime = new Date(); // Обновляем время
+                    currentPage = 1; // Сбросить страницу при обновлении
+                    applyFilters();
+                    updateStats();
+                    updateIndicator();
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки:', error);
+                document.getElementById('tendersContent').innerHTML =
+                    '<div class="empty-state"><div class="empty-state-icon">!</div><p class="empty-state-text">Ошибка загрузки данных</p></div>';
+            } finally {
+                const btn = document.getElementById('refreshBtn');
+                btn.disabled = false;
+                btn.textContent = 'Обновить';
+            }
+        }
+
+        async function updateStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+
+                if (data.success) {
+                    const stats = data.stats;
+                    
+                    // Подсчет метрик из allTenders
+                    const newCount = allTenders.filter(t => isNew(t)).length;
+                    const urgentCount = allTenders.filter(t => getUrgencyLevel(t.deadline) === 'urgent' && !isExpired(t)).length;
+                    const warningCount = allTenders.filter(t => getUrgencyLevel(t.deadline) === 'warning' && !isExpired(t)).length;
+                    const favoriteCount = Object.keys(favorites).length;
+                    
+                    // Обновляем карточки статистики
+                    document.getElementById('totalTenders').textContent = allTenders.filter(t => !isExpired(t)).length;
+                    document.getElementById('newTenders').textContent = newCount;
+                    document.getElementById('urgentTenders').textContent = urgentCount;
+                    document.getElementById('warningTenders').textContent = warningCount;
+                    document.getElementById('favoriteTenders').textContent = favoriteCount;
+                    document.getElementById('totalRuns').textContent = stats.totalRuns;
+
+                    if (stats.lastRun) {
+                        lastUpdateTime = new Date(stats.lastRun);
+                        updateIndicator();
+                        const diff = Math.floor((new Date() - new Date(stats.lastRun)) / 60000);
+                        document.getElementById('lastCheck').textContent = diff < 1 ? 'Сейчас' : `${diff} мин`;
+                    }
+
+                    // Обновляем статусы сайтов
+                    if (stats.bySite) {
+                        Object.entries(stats.bySite).forEach(([id, site]) => {
+                            const el = document.getElementById(`status-${id}`);
+                            if (el && site.lastStatus) {
+                                el.className = `source-status ${site.lastStatus}`;
+                                el.textContent = site.lastStatus === 'ok'
+                                    ? `OK | Найдено: ${site.newTenders}`
+                                    : 'Ошибка';
+                            }
+                        });
+                    }
+                    
+                    // Обновляем счетчики быстрых фильтров
+                    updateQuickFilterCounts();
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+            }
+        }
+        
+        // Обновление счетчиков быстрых фильтров
+        function updateQuickFilterCounts() {
+            const urgentCount = allTenders.filter(t => getUrgencyLevel(t.deadline) === 'urgent' && !isExpired(t)).length;
+            const newCount = allTenders.filter(t => isNew(t) && !isExpired(t)).length;
+            const favoriteCount = Object.keys(favorites).length;
+            const warningCount = allTenders.filter(t => getUrgencyLevel(t.deadline) === 'warning' && !isExpired(t)).length;
+            const allCount = allTenders.filter(t => !isExpired(t)).length;
+            
+            document.getElementById('countUrgent').textContent = urgentCount;
+            document.getElementById('countNew').textContent = newCount;
+            document.getElementById('countFavorites').textContent = favoriteCount;
+            document.getElementById('countWarning').textContent = warningCount;
+            document.getElementById('countAll').textContent = allCount;
+        }
+        
+        // Индикатор обновления
+        function updateIndicator() {
+            const indicator = document.getElementById('updateIndicator');
+            const text = document.getElementById('lastUpdateText');
+            const pulse = indicator.querySelector('.update-pulse');
+            
+            if (!lastUpdateTime) {
+                text.textContent = 'Ожидание обновления...';
+                return;
+            }
+            
+            const now = new Date();
+            const diffMs = now - lastUpdateTime;
+            const diffMin = Math.floor(diffMs / 60000);
+            const nextUpdateMin = 30 - (diffMin % 30);
+            
+            if (diffMin < 1) {
+                text.textContent = 'Обновлено только что | След. через ' + nextUpdateMin + ' мин';
+            } else if (diffMin < 60) {
+                text.textContent = `Обновлено ${diffMin} мин. назад | След. через ${nextUpdateMin} мин`;
+            } else {
+                const hours = Math.floor(diffMin / 60);
+                text.textContent = `Обновлено ${hours} ч. назад | След. через ${nextUpdateMin} мин`;
+            }
+        }
+        
+        // Быстрые фильтры
+        function quickFilter(type) {
+            // Снимаем выделение со всех кнопок
+            document.querySelectorAll('.quick-filter-btn').forEach(btn => btn.classList.remove('active'));
+            
+            if (activeQuickFilter === type) {
+                // Отключаем фильтр если кликнули на тот же
+                activeQuickFilter = null;
+            } else {
+                activeQuickFilter = type;
+                document.getElementById('quick' + type.charAt(0).toUpperCase() + type.slice(1)).classList.add('active');
+            }
+            
+            applyFilters();
+        }
+
+        async function scrapeNow() {
+            const btn = document.getElementById('scrapeBtn');
+            const indicator = document.getElementById('updateIndicator');
+            btn.disabled = true;
+            btn.textContent = 'Запущено...';
+            
+            // Показываем индикатор загрузки
+            indicator.classList.add('loading');
+
+            try {
+                await fetch('/api/scrape-now', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+
+                // Автообновление через 30 секунд
+                setTimeout(() => {
+                    loadTenders();
+                    loadSources();
+                    btn.disabled = false;
+                    btn.textContent = 'Проверить сейчас';
+                    indicator.classList.remove('loading');
+                }, 30000);
+            } catch (error) {
+                console.error('Ошибка:', error);
+                btn.disabled = false;
+                btn.textContent = 'Проверить сейчас';
+                indicator.classList.remove('loading');
+            }
+        }
+
+        function filterTenders() {
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const sourceFilter = document.getElementById('sourceFilter').value;
+            const timeFilter = document.getElementById('timeFilter').value;
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const sortBy = document.getElementById('sortBy').value;
+            
+            // Расширенные фильтры
+            const priceMin = parseFloat(document.getElementById('priceMin')?.value) || 0;
+            const priceMax = parseFloat(document.getElementById('priceMax')?.value) || Infinity;
+            const urgencyFilter = document.getElementById('urgencyFilter')?.value || 'all';
+            const priorityFilter = document.getElementById('priorityFilter')?.value || 'all';
+
+            let filtered = allTenders;
+
+            // Фильтр по сайту
+            if (sourceFilter !== 'all') {
+                filtered = filtered.filter(t => (t.source || 'anbud') === sourceFilter);
+            }
+
+            // ❌ Фильтр просроченных тендеров (СКРЫВАЕМ ВСЕ ПРОСРОЧЕННЫЕ)
+            filtered = filtered.filter(t => !isExpired(t));
+
+            // 🚀 БЫСТРЫЕ ФИЛЬТРЫ (приоритет над обычными)
+            if (activeQuickFilter) {
+                switch (activeQuickFilter) {
+                    case 'urgent':
+                        filtered = filtered.filter(t => getUrgencyLevel(t.deadline) === 'urgent');
+                        break;
+                    case 'new':
+                        filtered = filtered.filter(t => isNew(t));
+                        break;
+                    case 'favorites':
+                        filtered = filtered.filter(t => favorites[t.id]);
+                        break;
+                    case 'warning':
+                        filtered = filtered.filter(t => getUrgencyLevel(t.deadline) === 'warning');
+                        break;
+                    case 'all':
+                        // Все тендеры (без дополнительного фильтра)
+                        break;
+                }
+            }
+
+            // Фильтр по времени
+            if (timeFilter === '24h') {
+                const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+                filtered = filtered.filter(t => new Date(t.scrapedAt) > cutoff);
+            } else if (timeFilter === '7d') {
+                const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+                filtered = filtered.filter(t => new Date(t.scrapedAt) > cutoff);
+            }
+
+            // Фильтр поиска
+            if (searchTerm) {
+                filtered = filtered.filter(t =>
+                    (t.title || '').toLowerCase().includes(searchTerm) ||
+                    (t.description || '').toLowerCase().includes(searchTerm) ||
+                    (t.category || '').toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            // Фильтр по цене (если есть информация о цене)
+            if (priceMin > 0 || priceMax < Infinity) {
+                filtered = filtered.filter(t => {
+                    // Попытка извлечь цену из описания (примерная логика)
+                    // В реальности нужно парсить структурированные данные
+                    return true; // placeholder
+                });
+            }
+            
+            // Фильтр по срочности
+            if (urgencyFilter !== 'all') {
+                filtered = filtered.filter(t => getUrgencyLevel(t.deadline) === urgencyFilter);
+            }
+            
+            // Фильтр по приоритету (требует загрузки приоритетов, пока упрощенно)
+            // В реальности нужно загрузить приоритеты всех тендеров
+            
+            // Фильтр по тегам
+            if (selectedTagFilters.length > 0) {
+                // Также требует загрузки тегов всех тендеров
+                // Пока пропускаем
+            }
+
+            // Сортировка (NEW тендеры всегда сверху)
+            filtered.sort((a, b) => {
+                const aIsNew = isNew(a);
+                const bIsNew = isNew(b);
+                
+                // Сначала сортируем по признаку "новый"
+                if (aIsNew && !bIsNew) return -1;
+                if (!aIsNew && bIsNew) return 1;
+                
+                // Затем по выбранному критерию
+                if (sortBy === 'date') {
+                    return new Date(b.scrapedAt) - new Date(a.scrapedAt);
+                } else if (sortBy === 'deadline') {
+                    if (!a.deadline) return 1;
+                    if (!b.deadline) return -1;
+                    return new Date(a.deadline) - new Date(b.deadline);
+                } else if (sortBy === 'title') {
+                    return (a.title || '').localeCompare(b.title || '');
+                }
+                return 0;
+            });
+
+            document.getElementById('resultsCount').textContent = `Показано: ${Math.min(filtered.length, itemsPerPage)} из ${filtered.length}`;
+            displayTenders(filtered);
+        }
+
+        function displayTenders(tenders) {
+            const container = document.getElementById('tendersContent');
+
+            if (tenders.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">&#128203;</div>
+                        <p class="empty-state-text">Тендеры пока не загружены. Дождитесь проверки или запустите вручную.</p>
+                    </div>`;
+                return;
+            }
+
+            // Пагинация
+            const start = (currentPage - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const paginated = tenders.slice(start, end);
+
+            container.innerHTML = paginated.map(tender => createTenderHTML(tender)).join('');
+            
+            // Добавляем пагинацию
+            if (tenders.length > itemsPerPage) {
+                const totalPages = Math.ceil(tenders.length / itemsPerPage);
+                let paginationHTML = '<div class="pagination">';
+                
+                if (currentPage > 1) {
+                    paginationHTML += `<button onclick="changePage(${currentPage - 1})">←</button>`;
+                }
+                
+                for (let i = 1; i <= Math.min(totalPages, 10); i++) {
+                    paginationHTML += `<button class="${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
+                }
+                
+                if (currentPage < totalPages) {
+                    paginationHTML += `<button onclick="changePage(${currentPage + 1})">→</button>`;
+                }
+                
+                paginationHTML += '</div>';
+                container.innerHTML += paginationHTML;
+            }
+        }
+
+        function createTenderHTML(tender, isFavoriteModal = false) {
+            const source = tender.source || 'anbud';
+            const sourceNames = { anbud: 'Anbud', doffin: 'Doffin', ted: 'TED EU', mercell: 'Mercell' };
+            const sourceName = sourceNames[source] || source;
+            const isNewTender = isNew(tender);
+            const isFav = !!favorites[tender.id];
+            
+            // Определяем срочность дедлайна
+            const urgency = getUrgencyLevel(tender.deadline);
+            const urgencyLabels = { urgent: '🔴 Срочно', warning: '🟠 Скоро', normal: '🟢 Обычный' };
+            
+            // Placeholder для тегов и приоритета (загрузятся асинхронно)
+            setTimeout(() => loadTenderExtendedData(tender.id), 100);
+
+            return `
+            <div class="tender-item ${isNewTender ? 'new' : ''}" id="tender-${tender.id}" data-priority="medium">
+                <div class="tender-header">
+                    <h3 class="tender-title">
+                        ${isNewTender ? '<span style="color: #4CAF50; margin-right: 6px;">🌟</span>' : ''}${escapeHtml(tender.title)}
+                    </h3>
+                    <div class="tender-badges">
+                        <span class="tender-badge source-badge ${source}">${sourceName}</span>
+                        ${isNewTender ? '<span class="tender-badge new-badge">NEW</span>' : ''}
+                        ${tender.deadline ? `<span class="deadline-badge ${urgency}">${urgencyLabels[urgency]}</span>` : ''}
+                        <span class="priority-badge medium" id="priority-badge-${tender.id}">Средний</span>
+                    </div>
+                </div>
+                ${tender.category ? `<span class="tender-category">${escapeHtml(tender.category)}</span>` : ''}
+                
+                <!-- Теги -->
+                <div class="tender-tags" id="tags-${tender.id}">
+                    <span style="color: #aaa; font-size: 0.8em;">Загрузка тегов...</span>
+                </div>
+                
+                ${tender.description ? `<p class="tender-description">${escapeHtml(tender.description.substring(0, 300))}</p>` : ''}
+                
+                <div class="tender-footer">
+                    <div class="tender-date">
+                        <div style="margin-bottom: 4px;">
+                            📅 <strong>Добавлен:</strong> ${isNewTender ? `<span style="color: #4CAF50; font-weight: 600;">✨ ${getTimeAgo(tender.scrapedAt)}</span>` : formatDate(tender.scrapedAt)}
+                        </div>
+                        <div>
+                            ${tender.deadline ? 
+                                `⏰ <strong>Deadline:</strong> <span style="color: ${getUrgencyLevel(tender.deadline) === 'urgent' ? '#f44336' : getUrgencyLevel(tender.deadline) === 'warning' ? '#ff9800' : '#4CAF50'};">${formatDeadline(tender.deadline)}</span>` 
+                                : '⏰ <strong>Deadline:</strong> <span style="color: #888;">не указан</span>'}
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        ${!isFavoriteModal ? `<button class="btn-icon favorite ${isFav ? 'active' : ''}" onclick="toggleFavorite('${tender.id}', ${JSON.stringify(tender).replace(/"/g, '&quot;')})" title="Избранное">
+                            ${isFav ? '❤️' : '🤍'}
+                        </button>` : ''}
+                        <button class="btn-icon" onclick="openTagsModal('${tender.id}')" title="Управление тегами">🏷️ Теги</button>
+                        <button class="btn-icon" onclick="openPriorityMenu('${tender.id}')" title="Установить приоритет">⭐ Приоритет</button>
+                        ${tender.deadline ? `<button class="btn-icon" onclick="openReminderModal('${tender.id}', '${tender.title}', '${tender.deadline}')" title="Напоминание">⏰ Напомнить</button>` : ''}
+                        ${tender.link ? `<a href="${escapeHtml(tender.link)}" target="_blank" class="tender-link">Открыть &rarr;</a>` : ''}
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        function changePage(page) {
+            currentPage = page;
+            applyFilters();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function isNew(tender) {
+            // Тендер считается новым если добавлен менее 48 часов назад
+            return new Date(tender.scrapedAt) > new Date(Date.now() - 48 * 60 * 60 * 1000);
+        }
+
+        function isExpired(tender) {
+            // Проверяем, истек ли deadline тендера
+            if (!tender.deadline) return false; // Если deadline не указан, тендер не просрочен
+            try {
+                const deadline = new Date(tender.deadline);
+                const now = new Date();
+                return deadline < now; // Deadline меньше текущей даты = просрочен
+            } catch (e) {
+                return false; // Если ошибка парсинга даты, считаем не просроченным
+            }
+        }
+
+        function getTimeAgo(dateStr) {
+            const now = new Date();
+            const past = new Date(dateStr);
+            const diffMs = now - past;
+            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+            const diffDays = Math.floor(diffHours / 24);
+            
+            if (diffHours < 1) return 'только что';
+            if (diffHours < 3) return `${diffHours} ч. назад ⚡`;
+            if (diffHours < 24) return `${diffHours} ч. назад`;
+            if (diffDays === 1) return 'вчера';
+            if (diffDays < 7) return `${diffDays} дн. назад`;
+            return formatDate(dateStr);
+        }
+
+        function formatDate(dateStr) {
+            return new Date(dateStr).toLocaleString('ru-RU', {
+                day: 'numeric', month: 'short', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            });
+        }
+
+        function formatDeadline(deadlineStr) {
+            if (!deadlineStr) return null;
+            try {
+                const date = new Date(deadlineStr);
+                // Проверяем что это валидная дата
+                if (isNaN(date.getTime())) return deadlineStr; // Возвращаем как есть если не дата
+                
+                const now = new Date();
+                const diffMs = date - now;
+                const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+                
+                const dateFormatted = date.toLocaleDateString('ru-RU', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric'
+                });
+                
+                if (diffDays < 0) return `${dateFormatted} (просрочен)`;
+                if (diffDays === 0) return `${dateFormatted} (сегодня!)`;
+                if (diffDays === 1) return `${dateFormatted} (завтра!)`;
+                if (diffDays <= 3) return `${dateFormatted} (через ${diffDays} дн.)`;
+                if (diffDays <= 7) return `${dateFormatted} (через ${diffDays} дн.)`;
+                return dateFormatted;
+            } catch (e) {
+                return deadlineStr; // Возвращаем оригинальную строку если ошибка
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // === Новые функции ===
+        
+        // Срочность дедлайна
+        function getUrgencyLevel(deadline) {
+            if (!deadline) return 'normal';
+            const now = new Date();
+            const deadlineDate = new Date(deadline);
+            const daysLeft = Math.ceil((deadlineDate - now) / (1000 * 60 * 60 * 24));
+            
+            if (daysLeft <= 3) return 'urgent';
+            if (daysLeft <= 7) return 'warning';
+            return 'normal';
+        }
+        
+        // Загрузка расширенных данных тендера
+        async function loadTenderExtendedData(tenderId) {
+            try {
+                const [tagsRes, priorityRes] = await Promise.all([
+                    fetch(`/api/tags/${tenderId}`),
+                    fetch(`/api/priority/${tenderId}`)
+                ]);
+                
+                const tagsData = await tagsRes.json();
+                const priorityData = await priorityRes.json();
+                
+                if (tagsData.success) {
+                    renderTags(tenderId, tagsData.tags || []);
+                }
+                
+                if (priorityData.success) {
+                    updatePriorityDisplay(tenderId, priorityData.priority || 'medium');
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки данных тендера:', error);
+            }
+        }
+        
+        function renderTags(tenderId, tags) {
+            const container = document.getElementById(`tags-${tenderId}`);
+            if (!container) return;
+            
+            if (tags.length === 0) {
+                container.innerHTML = '<button class="btn-icon" onclick="openTagsModal(\'' + tenderId + '\')" style="font-size: 0.8em;">+ Добавить теги</button>';
+                return;
+            }
+            
+            container.innerHTML = tags.map(tag =>
+                `<span class="tag">${escapeHtml(tag)} <span class="tag-remove" onclick="removeTag('${tenderId}', '${tag}')">×</span></span>`
+            ).join('') + `<button class="btn-icon" onclick="openTagsModal('${tenderId}')" style="font-size: 0.7em; padding: 2px 6px;">+</button>`;
+        }
+        
+        function updatePriorityDisplay(tenderId, priority) {
+            const badge = document.getElementById(`priority-badge-${tenderId}`);
+            const tenderEl = document.getElementById(`tender-${tenderId}`);
+            if (!badge || !tenderEl) return;
+            
+            const labels = { high: 'Высокий', medium: 'Средний', low: 'Низкий' };
+            badge.className = `priority-badge ${priority}`;
+            badge.textContent = labels[priority];
+            
+            tenderEl.className = tenderEl.className.replace(/priority-\w+/g, '');
+            tenderEl.classList.add(`priority-${priority}`);
+            tenderEl.setAttribute('data-priority', priority);
+        }
+        
+        // Теги
+        let currentTagTenderId = null;
+        let allSystemTags = [];
+        
+        async function openTagsModal(tenderId) {
+            currentTagTenderId = tenderId;
+            showModal('tagsModal');
+            
+            // Загружаем текущие теги
+            const res = await fetch(`/api/tags/${tenderId}`);
+            const data = await res.json();
+            const currentTags = data.success ? (data.tags || []) : [];
+            
+            document.getElementById('currentTagsList').innerHTML =
+                currentTags.map(tag => `<span class="tag">${escapeHtml(tag)} <span class="tag-remove" onclick="removeTagFromModal('${tag}')">×</span></span>`).join('') ||
+                '<span style="color: #aaa;">Нет тегов</span>';
+            
+            // Загружаем все теги для подсказок
+            const allTagsRes = await fetch('/api/tags');
+            const allTagsData = await allTagsRes.json();
+            allSystemTags = allTagsData.success ? allTagsData.tags : [];
+        }
+        
+        async function addTag() {
+            const input = document.getElementById('newTagInput');
+            const tag = input.value.trim();
+            if (!tag || !currentTagTenderId) return;
+            
+            const res = await fetch(`/api/tags/${currentTagTenderId}`);
+            const data = await res.json();
+            const currentTags = data.success ? (data.tags || []) : [];
+            
+            if (!currentTags.includes(tag)) {
+                currentTags.push(tag);
+                await fetch(`/api/tags/${currentTagTenderId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tags: currentTags })
+                });
+                
+                renderTags(currentTagTenderId, currentTags);
+                openTagsModal(currentTagTenderId);
+            }
+            
+            input.value = '';
+        }
+        
+        async function removeTag(tenderId, tag) {
+            const res = await fetch(`/api/tags/${tenderId}`);
+            const data = await res.json();
+            let tags = data.success ? (data.tags || []) : [];
+            
+            tags = tags.filter(t => t !== tag);
+            await fetch(`/api/tags/${tenderId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tags })
+            });
+            
+            renderTags(tenderId, tags);
+        }
+        
+        async function removeTagFromModal(tag) {
+            await removeTag(currentTagTenderId, tag);
+            openTagsModal(currentTagTenderId);
+        }
+        
+        // Приоритеты
+        async function openPriorityMenu(tenderId) {
+            const priorities = [
+                { value: 'high', label: '🔴 Высокий', color: '#f44336' },
+                { value: 'medium', label: '🟠 Средний', color: '#ff9800' },
+                { value: 'low', label: '🟢 Низкий', color: '#4CAF50' }
+            ];
+            
+            const choice = confirm('Выберите приоритет:\n\n1 - Высокий\n2 - Средний\n3 - Низкий');
+            let priority = null;
+            
+            if (choice) {
+                const num = prompt('Введите 1, 2 или 3:');
+                if (num === '1') priority = 'high';
+                else if (num === '2') priority = 'medium';
+                else if (num === '3') priority = 'low';
+            }
+            
+            if (priority) {
+                await fetch(`/api/priority/${tenderId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ priority })
+                });
+                
+                updatePriorityDisplay(tenderId, priority);
+            }
+        }
+        
+        // Напоминания
+        let currentReminderData = {};
+        
+        function openReminderModal(tenderId, title, deadline) {
+            currentReminderData = { tenderId, title, deadline };
+            showModal('reminderModal');
+            document.getElementById('reminderTenderTitle').textContent = title;
+            document.getElementById('reminderDeadline').textContent = `Дедлайн: ${deadline}`;
+        }
+        
+        async function saveReminder() {
+            const checkboxes = document.querySelectorAll('.reminder-checkbox input:checked');
+            const daysBeforeList = Array.from(checkboxes).map(cb => parseInt(cb.value));
+            
+            if (daysBeforeList.length === 0) {
+                alert('Выберите хотя бы один день для напоминания');
+                return;
+            }
+            
+            await fetch(`/api/reminders/${currentReminderData.tenderId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ daysBeforeList })
+            });
+            
+            closeModal('reminderModal');
+            alert(`Напоминания установлены за: ${daysBeforeList.join(', ')} дней до дедлайна`);
+        }
+        
+        // Расширенные фильтры
+        function toggleAdvancedFilters() {
+            const panel = document.getElementById('advancedFilters');
+            panel.classList.toggle('show');
+            
+            // Загружаем теги для фильтров
+            if (panel.classList.contains('show')) {
+                loadFilterTags();
+            }
+        }
+        
+        async function loadFilterTags() {
+            const res = await fetch('/api/tags');
+            const data = await res.json();
+            if (data.success) {
+                const container = document.getElementById('filterTagList');
+                const tags = data.tags;
+                
+                if (tags.length === 0) {
+                    container.innerHTML = '<span style="color: #aaa; font-size: 0.85em;">Нет тегов</span>';
+                    return;
+                }
+                
+                container.innerHTML = tags.map(tag =>
+                    `<span class="filter-tag" onclick="toggleTagFilter('${tag}')">${escapeHtml(tag)}</span>`
+                ).join('');
+            }
+        }
+        
+        let selectedTagFilters = [];
+        
+        function toggleTagFilter(tag) {
+            const index = selectedTagFilters.indexOf(tag);
+            if (index > -1) {
+                selectedTagFilters.splice(index, 1);
+            } else {
+                selectedTagFilters.push(tag);
+            }
+            
+            // Обновляем визуально
+            document.querySelectorAll('.filter-tag').forEach(el => {
+                if (el.textContent === tag) {
+                    el.classList.toggle('active');
+                }
+            });
+            
+            applyFilters();
+        }
+        
+        function loadPreset(preset) {
+            resetFilters();
+            
+            if (preset === 'urgent') {
+                document.getElementById('urgencyFilter').value = 'urgent';
+            } else if (preset === 'highPriority') {
+                document.getElementById('priorityFilter').value = 'high';
+            } else if (preset === 'recent') {
+                document.getElementById('timeFilter').value = '24h';
+            }
+            
+            applyFilters();
+        }
+        
+        function saveCurrentPreset() {
+            const name = prompt('Название пресета:');
+            if (!name) return;
+            
+            const filters = {
+                source: document.getElementById('sourceFilter').value,
+                time: document.getElementById('timeFilter').value,
+                search: document.getElementById('searchInput').value,
+                priceMin: document.getElementById('priceMin').value,
+                priceMax: document.getElementById('priceMax').value,
+                urgency: document.getElementById('urgencyFilter').value,
+                priority: document.getElementById('priorityFilter').value
+            };
+            
+            fetch('/api/filter-presets', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, filters })
+            });
+            
+            alert('Пресет сохранен!');
+        }
+        
+        function resetFilters() {
+            document.getElementById('sourceFilter').value = 'all';
+            document.getElementById('timeFilter').value = 'all';
+            document.getElementById('searchInput').value = '';
+            document.getElementById('sortBy').value = 'date';
+            document.getElementById('priceMin').value = '';
+            document.getElementById('priceMax').value = '';
+            document.getElementById('urgencyFilter').value = 'all';
+            document.getElementById('priorityFilter').value = 'all';
+            selectedTagFilters = [];
+            document.querySelectorAll('.filter-tag').forEach(el => el.classList.remove('active'));
+            applyFilters();
+        }
+        
+        // PWA
+        let deferredPrompt;
+        
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(reg => console.log('[SW] Registered', reg))
+                    .catch(err => console.log('[SW] Error', err));
+            });
+        }
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('installPWA').classList.add('show');
+        });
+        
+        function installPWA() {
+            if (!deferredPrompt) return;
+            
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    console.log('PWA installed');
+                }
+                deferredPrompt = null;
+                document.getElementById('installPWA').classList.remove('show');
+            });
+        }
+        
+        // Инициализация
+        async function initApp() {
+            loadTheme();
+            initWebSocket();
+            loadSources();
+            await loadFavorites(); // Сначала загружаем избранное
+            await loadTenders();   // Затем тендеры
+            setInterval(() => { updateStats(); }, 30000); // Обновление статистики каждые 30 сек
+            setInterval(() => { updateIndicator(); }, 60000); // Обновление индикатора каждую минуту
+            setInterval(() => { loadTenders(); }, 120000); // Перезагрузка тендеров каждые 2 мин
+        }
+        
+        initApp();
+        
+        // Запрос разрешения на уведомления
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+    </script>
+    
+    <!-- Модальные окна для новых функций -->
+    
+    <!-- Модальное окно тегов -->
+    <div id="tagsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🏷️ Управление тегами</h2>
+                <button class="modal-close" onclick="closeModal('tagsModal')">×</button>
+            </div>
+            <div id="currentTagsList" style="margin: 15px 0; min-height: 30px;"></div>
+            <input type="text" id="newTagInput" class="modal-input" placeholder="Новый тег..." onkeypress="if(event.key==='Enter') addTag()">
+            <div class="modal-buttons">
+                <button class="btn-secondary" onclick="closeModal('tagsModal')">Закрыть</button>
+                <button onclick="addTag()">Добавить тег</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Модальное окно напоминаний -->
+    <div id="reminderModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>⏰ Установить напоминание</h2>
+                <button class="modal-close" onclick="closeModal('reminderModal')">×</button>
+            </div>
+            <p style="color: #aaa; margin-bottom: 10px;" id="reminderTenderTitle"></p>
+            <p style="color: #ff9800; margin-bottom: 20px;" id="reminderDeadline"></p>
+            <p style="margin-bottom: 15px;">Напомнить за:</p>
+            <div class="reminder-options">
+                <label class="reminder-checkbox">
+                    <input type="checkbox" value="1"> 1 день
+                </label>
+                <label class="reminder-checkbox">
+                    <input type="checkbox" value="3"> 3 дня
+                </label>
+                <label class="reminder-checkbox">
+                    <input type="checkbox" value="7"> 7 дней
+                </label>
+                <label class="reminder-checkbox">
+                    <input type="checkbox" value="14"> 14 дней
+                </label>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-secondary" onclick="closeModal('reminderModal')">Отмена</button>
+                <button onclick="saveReminder()">Сохранить</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- PWA Install Button -->
+    <div id="installPWA" class="install-pwa" onclick="installPWA()">
+        📱 Установить приложение
+    </div>
+
+</body>
+</html>
