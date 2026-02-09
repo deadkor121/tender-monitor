@@ -1,9 +1,10 @@
-const DatabaseService = require('./databaseService');
-
 class UserDataService {
   constructor(db) {
-    // Если передана БД, используем её, иначе создаём новую
-    this.db = db || new DatabaseService();
+    // Используем переданную БД (PostgreSQL на production)
+    if (!db) {
+      throw new Error('UserDataService требует передачи экземпляра БД в конструктор');
+    }
+    this.db = db;
   }
 
   // ==================== ИЗБРАННОЕ ====================
